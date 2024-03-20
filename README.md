@@ -19,6 +19,7 @@ Kor is a tool to discover unused Kubernetes resources. Currently, Kor can identi
 - StatefulSets
 - Roles
 - ClusterRoles
+- ClusterRoleBindings
 - HPAs
 - PVCs
 - Ingresses
