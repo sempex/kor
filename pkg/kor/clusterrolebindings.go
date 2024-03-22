@@ -22,6 +22,14 @@ func RetrieveUsedClusterRoleBindings(clientset kubernetes.Clientset, filterOpts 
 	if err != nil {
 		return fmt.Errorf("could not get a list of ClusterRoleBindings %v", err)
 	}
+	clusterRoles, err := clientset.RbacV1().ClusterRoles().List(context.TODO(), v1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("could not get a list of ClusterRoles")
+	}
+	clusterRoleNames := make([]string, 0)
+	for _, clusterRole := range clusterRoles.Items {
+		clusterRoleNames = append(clusterRoleNames, clusterRole.Name)
+	}
 
 	for _, ns := range namespaceList.Items {
 		serviceAccounts, err := clientset.CoreV1().ServiceAccounts(ns.Name).List(context.TODO(), v1.ListOptions{})
@@ -36,9 +44,12 @@ func RetrieveUsedClusterRoleBindings(clientset kubernetes.Clientset, filterOpts 
 
 	for _, clusterRoleBinding := range clusterRoleBindings.Items {
 		saExists := checkServiceAccount(clusterRoleBinding, allServiceAccounts)
-		if saExists {
+		crExists := checkClusterRole(clusterRoleBinding, clusterRoleNames)
+
+		if saExists && crExists {
 			usedClusterRoleBindings = append(usedClusterRoleBindings, clusterRoleBinding.Name)
 		}
+
 	}
 	fmt.Println(usedClusterRoleBindings)
 	return nil
@@ -58,6 +69,6 @@ func checkServiceAccount(clusterrolebinding rbacv1.ClusterRoleBinding, allservic
 	return serviceAccountDetected != 0
 }
 
-func checkClusterRole(clientset kubernetes.Clientset, clusterrole string) {
-
+func checkClusterRole(clusterrolebinding rbacv1.ClusterRoleBinding, clusterRoleNames []string) bool {
+	return slices.Contains(clusterRoleNames, clusterrolebinding.RoleRef.Name)
 }
